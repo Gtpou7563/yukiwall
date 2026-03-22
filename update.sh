@@ -17,6 +17,7 @@ repo_dir="$(dirname "$(realpath "$0")")"
 
 if [ -f "$repo_dir/setup.py" ] || [ -f "$repo_dir/pyproject.toml" ]; then
     echo "Updating yukiwall from local repo..."
+    git pull
     "$venv/bin/pip" install --upgrade "$repo_dir"
 else
     echo "Hmm. Something went wrong. Open an issue on GitHub."
