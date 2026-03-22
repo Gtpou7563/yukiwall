@@ -1,136 +1,159 @@
 import sys
 import os
-from yukiwall.firewall import load_config, save_config, apply_nft_config, expand_ports, normalize_port
+from yukiwall.firewall import (
+    load_config,
+    save_config,
+    apply_nft_config,
+    normalize_port
+)
 
-def ensure_root() -> None:
+def ensure_root():
     if os.getuid() != 0:
-        print("🛑 Error: yukiwall requires root privileges.")
+        print("🛑 Requires root.")
         sys.exit(1)
 
-def ask_yn(prompt) -> bool:
-    while True:
-        ans: str = input(prompt + " (y/n): ").strip().lower()
-        if ans in ("y", "n"):
-            return ans == "y"
+def parse_rule(args):
+    action = args[0]
+    source = None
+    ports = None
 
-def ssh_check(ports) -> None:
-    expanded = expand_ports(ports)
-    if "tcp/22" not in expanded:
-        print("\n⚠️  WARNING: Port 22 (SSH) is NOT in your allowed list.")
-        if not ask_yn(prompt="Are you absolutely sure you want to proceed?"):
-            print("Operation cancelled.")
-            sys.exit(0)
+    i = 1
+    while i < len(args):
+        if args[i] == "from":
+            i += 1
+            source = args[i]
+        elif args[i] == "to":
+            i += 1
+            raw_ports = args[i].replace(",", " ").split()
+            ports = []
+            for p in raw_ports:
+                norm = normalize_port(p)
+                if norm:
+                    ports.append(norm)
+        i += 1
 
-def configure() -> None:
-    print("💫 yukiwall - simple wrapper for nftables")
-    while True:
-        raw = input("Ports to allow (e.g., tcp/22, 80/tcp): ").strip()
-        ports = []
-        for p in raw.replace(",", " ").split():
-            norm = normalize_port(p.strip())
-            if norm:
-                ports.append(norm)  
+    return {
+        "action": action,
+        "source": source,
+        "ports": ports
+    }
 
-        print(f"Current selection: {', '.join(ports)}")
-        ssh_check(ports=ports)
-        if ask_yn(prompt="Is this correct?"):
-            break
-    save_config(ports=ports)
-    apply_nft_config(ports=ports, policy="drop")
-    print("✅ Firewall enabled!")
-
-def add_ports(new_ports) -> None:
+def add_rule(args):
+    rule = parse_rule(args)
     cfg = load_config()
-    current = set(cfg.get("allowed_ports", []))
-    
-    for p in new_ports:
-        norm: None | str = normalize_port(port_str=p)
-        if norm:
-            current.add(norm)
-    
-    final_list = list(current)
-    ssh_check(ports=final_list) 
-    save_config(ports=final_list)
-    apply_nft_config(ports=final_list, policy="drop")
-    print(f"✅ Added and applied.")
 
-def remove_ports(rem_ports) -> None:
+    rules = cfg.get("rules", [])
+    next_id = max([r["id"] for r in rules], default=0) + 1
+
+    rule["id"] = next_id
+    rules.append(rule)
+
+    cfg["rules"] = rules
+    save_config(cfg)
+    apply_nft_config(cfg)
+
+    print(f"✅ Rule {next_id} added.")
+
+def remove_rule(rule_id):
     cfg = load_config()
-    current = set(cfg.get("allowed_ports", []))
-    for p in rem_ports:
-        norm: None | str = normalize_port(port_str=p)
-        if norm:
-            current.discard(norm)
-    
-    final_list = list(current)
-    ssh_check(ports=final_list)
-    save_config(ports=final_list)
-    apply_nft_config(ports=final_list, policy="drop")
-    print(f"✅ Removed and applied.")
+    rules = cfg.get("rules", [])
 
-def list_ports() -> None:
+    rules = [r for r in rules if r["id"] != rule_id]
+
+    cfg["rules"] = rules
+    save_config(cfg)
+    apply_nft_config(cfg)
+
+    print(f"🧹 Rule {rule_id} removed.")
+
+def list_rules():
     cfg = load_config()
-    ports = cfg.get("allowed_ports", [])
-    if ports:
-        print("🔓 Allowed ports:", ", ".join(ports))
-    else:
-        print("🔒 All incoming traffic blocked.")
+    rules = cfg.get("rules", [])
 
-def flush_ports() -> None:
-    """Remove all allowed ports and disable firewall rules (sets policy to drop)."""
-    save_config(ports=[])
-    apply_nft_config(ports=[], policy="drop")
-    print("🧹 All allowed ports flushed! Firewall is now blocking everything.")
+    if not rules:
+        print("No rules.")
+        return
 
-def main() -> None:
+    for r in rules:
+        rid = r["id"]
+        action = r["action"]
+        src = r["source"] or "any"
+        ports = r["ports"]
+
+        if ports:
+            ports_str = ", ".join(ports)
+            print(f"[{rid}] {action.upper()} from {src} to {ports_str}")
+        else:
+            print(f"[{rid}] {action.upper()} from {src} (all ports)")
+
+def set_logging(state):
+    cfg = load_config()
+    cfg["logging"] = state
+    save_config(cfg)
+    apply_nft_config(cfg)
+
+    status = "enabled" if state else "disabled"
+    print(f"🪵 Logging {status}.")
+
+def print_usage():
+    print("""💫 yukiwall - simple nftables wrapper
+
+Usage:
+  yukiwall allow from <ip/subnet> [to <ports>]
+  yukiwall allow to <ports>
+  yukiwall block from <ip/subnet>
+
+Commands:
+  allow ...        Add allow rule
+  block ...        Add block rule
+  remove <id>      Remove rule by ID
+  list             Show rules
+  reload           Reload rules
+  flush            Remove all rules
+  logging          Toggle logging on/off
+
+Examples:
+  yukiwall allow from 192.168.0.0/16
+  yukiwall allow to tcp/22,80
+  yukiwall block from 10.0.0.0/24
+""")
+
+def main():
     ensure_root()
 
-    usage_msg = (
-        "Usage:\n"
-        "  yukiwall configure          # Interactive port setup\n"
-        "  yukiwall add <ports>        # Add ports, format: tcp/22, udp/53, both/80\n"
-        "  yukiwall remove <ports>     # Remove ports, same format\n"
-        "  yukiwall list               # List allowed ports\n"
-        "  yukiwall enable             # Enable firewall\n"
-        "  yukiwall disable            # Disable firewall\n"
-        "  yukiwall flush              # Flush allowed ports"
-    )
-
     if len(sys.argv) < 2:
-        print(usage_msg)
-        sys.exit(1)
+        print_usage()
+        sys.exit(0)
 
-    cmd: str = sys.argv[1].lower()
-    args: list[str] = sys.argv[2:]
+    cmd = sys.argv[1]
 
-    if cmd == "configure":
-        configure()
-    elif cmd == "add":
-        if not args:
-            print(f"{usage_msg}\n\nFormat example: tcp/22, udp/53, both/80")
-            sys.exit(1)
-        add_ports(new_ports=args)
+    if cmd in ("allow", "block"):
+        add_rule(sys.argv[1:])
     elif cmd == "remove":
-        if not args:
-            print(f"{usage_msg}\n\nFormat example: tcp/22, udp/53, both/80")
-            sys.exit(1)
-        remove_ports(rem_ports=args)
+        remove_rule(int(sys.argv[2]))
     elif cmd == "list":
-        list_ports()
-    elif cmd == "enable":
-        cfg = load_config()
-        apply_nft_config(cfg.get("allowed_ports", []), policy="drop")
-        print("✅ Firewall ENABLED")
-    elif cmd == "disable":
-        if ask_yn(prompt="Disable firewall (Allow ALL)?"):
-            apply_nft_config(ports=[], policy="accept")
-            print("🛑 Firewall DISABLED")
+        list_rules()
+    elif cmd == "reload":
+        apply_nft_config(load_config())
+        print("✅ Reloaded")
     elif cmd == "flush":
-        if ask_yn(prompt="Are you sure you want to flush all allowed ports?"):
-            flush_ports()
+        save_config({"rules": [], "default_policy": "drop"})
+        apply_nft_config(load_config())
+        print("🧹 Flushed")
+    elif cmd == "logging":
+        if len(sys.argv) < 3:
+            print("Usage: yukiwall logging on|off")
+            sys.exit(1)
+
+        val = sys.argv[2].lower()
+        if val == "on":
+            set_logging(True)
+        elif val == "off":
+            set_logging(False)
+        else:
+            print("Use 'on' or 'off'")
     else:
-        print(usage_msg)
-        sys.exit(1)
+        print("Unknown command")
 
 if __name__ == "__main__":
     main()

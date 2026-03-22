@@ -5,72 +5,111 @@ import subprocess
 CONFIG_PATH = "/etc/yukiwall.json"
 NFT_PATH = "/etc/nftables.conf"
 
-def save_config(ports) -> None:
-    config = {"allowed_ports": ports}
-    with open(CONFIG_PATH, mode="w") as f:
-        json.dump(config, fp=f, indent=4)
+def save_config(config):
+    with open(CONFIG_PATH, "w") as f:
+        json.dump(config, f, indent=4)
 
 def load_config():
-    if os.path.exists(path=CONFIG_PATH):
-        with open(file=CONFIG_PATH, mode="r") as f:
-            return json.load(fp=f)
-    return {"allowed_ports": []}
+    if os.path.exists(CONFIG_PATH):
+        with open(CONFIG_PATH) as f:
+            cfg = json.load(f)
+    else:
+        cfg = {}
 
-def normalize_port(port_str) -> None | str:
+    cfg.setdefault("rules", [])
+    cfg.setdefault("default_policy", "drop")
+    cfg.setdefault("logging", False)
+
+    return cfg
+
+def normalize_port(port_str):
     if "/" not in port_str:
         return None
-    parts = port_str.split("/")
-    p1, p2 = parts[0].lower(), parts[1].lower()
-
-    if p1.isdigit():
-        port, proto = p1, p2
-    elif p2.isdigit():
-        proto, port = p1, p2
-    else:
-        return None
-        
-    return f"{proto}/{port}"
+    a, b = port_str.split("/")
+    if a.isdigit():
+        return f"{b}/{a}"
+    elif b.isdigit():
+        return f"{a}/{b}"
+    return None
 
 def expand_ports(ports):
     result = []
     for p in ports:
-        normalized: None | str = normalize_port(port_str=p)
-        if not normalized:
-            continue
-        
-        proto, port = normalized.split("/")
+        proto, port = p.split("/")
         if proto == "both":
             result.append(f"tcp/{port}")
             result.append(f"udp/{port}")
         else:
-            result.append(f"{proto}/{port}")
+            result.append(p)
     return result
 
-def generate_nft_config(ports, policy="drop") -> str:
-    expanded = expand_ports(ports=ports)
-    nft_conf: list[str] = [
+def generate_nft_config(config):
+    rules = config.get("rules", [])
+    policy = config.get("default_policy", "drop")
+
+    nft = [
+        "#!/usr/sbin/nft -o -f",
+        "",
+        "flush ruleset",
         "table inet filter {",
         "    chain input {",
         "        type filter hook input priority 0;",
         f"        policy {policy};",
         "        ct state established,related accept;",
-        "        iifname \"lo\" accept;"
+        "        iif \"lo\" accept;"
     ]
-    for port_entry in expanded:
-        proto, p = port_entry.split("/")
-        nft_conf.append(f"        {proto} dport {p} accept;")
-    
-    nft_conf.append("    }")
-    nft_conf.append("}")
-    return "\n".join(nft_conf)
 
-def apply_nft_config(ports, policy="drop") -> None:
-    nft_conf: str = generate_nft_config(ports=ports, policy=policy)
-    tmp_path = "/tmp/yukiwall.nft"
-    with open(file=tmp_path, mode="w") as f:
+    for r in rules:
+        if r["action"] != "block":
+            continue
+        if r["source"]:
+            nft.append(f"        ip saddr {r['source']} drop;")
+
+    for r in rules:
+        if r["action"] != "allow" or r["ports"] is not None:
+            continue
+        if r["source"]:
+            nft.append(f"        ip saddr {r['source']} accept;")
+
+    for r in rules:
+        if r["action"] != "allow" or not r["ports"]:
+            continue
+
+        ports = expand_ports(r["ports"])
+
+        for p in ports:
+            proto, port = p.split("/")
+            if r["source"]:
+                nft.append(
+                    f"        ip saddr {r['source']} {proto} dport {port} accept;"
+                )
+            else:
+                nft.append(
+                    f"        {proto} dport {port} accept;"
+                )
+
+    logging_enabled = config.get("logging", False)
+
+    if logging_enabled and policy == "drop":
+        nft.append(
+            '        limit rate 3/minute burst 10 packets log prefix "[YW: DROP] ";'
+        )
+
+    nft.append("    }")
+    nft.append("}")
+
+    return "\n".join(nft)
+
+def apply_nft_config(config):
+    nft_conf = generate_nft_config(config)
+
+    tmp = "/tmp/yukiwall.nft"
+    with open(tmp, "w") as f:
         f.write(nft_conf)
-    if os.path.exists(path=NFT_PATH):
-        os.rename(src=NFT_PATH, dst=NFT_PATH + ".bak")
-    subprocess.run(args=["mv", tmp_path, NFT_PATH], check=True)
-    subprocess.run(args=["systemctl", "enable", "--now", "nftables"], check=True)
-    subprocess.run(args=["nft", "-f", NFT_PATH], check=True)
+
+    if os.path.exists(NFT_PATH):
+        os.rename(NFT_PATH, NFT_PATH + ".bak")
+
+    subprocess.run(["mv", tmp, NFT_PATH], check=True)
+    subprocess.run(["systemctl", "enable", "--now", "nftables"], check=True)
+    subprocess.run(["nft", "-f", NFT_PATH], check=True)
