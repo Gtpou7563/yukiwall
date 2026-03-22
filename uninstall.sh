@@ -2,7 +2,7 @@
 set -e
 
 if [ "$EUID" -ne 0 ]; then
-    echo "Restarting with sudo..."
+    echo "Restarting self with sudo..."
     exec sudo bash "$0" "$@"
 fi
 
