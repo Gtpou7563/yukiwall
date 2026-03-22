@@ -104,7 +104,7 @@ def generate_nft_config(config):
 
     if logging_enabled and policy == "drop":
         nft.append(
-            '        limit rate 3/minute burst 10 packets log prefix "[YW: DROP] ";'
+            '        limit rate 3/minute burst 10 packets log prefix "[YW | DROP]: ";'
         )
 
     nft.append("    }")
