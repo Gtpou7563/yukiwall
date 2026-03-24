@@ -7,7 +7,6 @@ CONFIG_PATH = "/etc/yukiwall.json"
 NFT_PATH = "/etc/nftables.conf"
 
 def save_config(config):
-    import tempfile
     dir_name = os.path.dirname(CONFIG_PATH)
     fd, temp_path = tempfile.mkstemp(dir=dir_name, text=True)
     
@@ -72,7 +71,6 @@ def generate_nft_config(config):
 
     nft = [
         "#!/usr/sbin/nft -o -f",
-        ""
         "table inet yukiwall {",
         "    chain input {",
         "        type filter hook input priority 0;",
@@ -160,4 +158,5 @@ def apply_nft_config(config):
 
     ensure_nftables()
 
+    subprocess.run(["nft", "flush", "table", "inet", "yukiwall"], check=False)
     subprocess.run(["nft", "-f", NFT_PATH], check=True)
