@@ -6,8 +6,18 @@ CONFIG_PATH = "/etc/yukiwall.json"
 NFT_PATH = "/etc/nftables.conf"
 
 def save_config(config):
-    with open(CONFIG_PATH, "w") as f:
-        json.dump(config, f, indent=4)
+    import tempfile
+    dir_name = os.path.dirname(CONFIG_PATH)
+    fd, temp_path = tempfile.mkstemp(dir=dir_name, text=True)
+    
+    try:
+        with os.fdopen(fd, 'w') as f:
+            json.dump(config, f, indent=4)
+        os.replace(temp_path, CONFIG_PATH)
+    except Exception as e:
+        if os.path.exists(temp_path):
+            os.remove(temp_path)
+        raise e
 
 def load_config():
     if os.path.exists(CONFIG_PATH):
