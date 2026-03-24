@@ -3,3 +3,7 @@ build/
 *benchmark*
 *pycache*
 *bench*.py
+*tmp*
+*temp*
+*bak*
+*old*
