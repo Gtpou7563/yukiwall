@@ -53,10 +53,9 @@ def parse_rule(args):
                 raise ValueError("Missing ports after 'to'")
             raw_ports = args[i].replace(",", " ").split()
             for p in raw_ports:
-                if PORT_RE.match(p):
-                    invalid.append(p)
-                elif PORT_PROTO_RE.match(p):
-                    ports.append(p.lower())
+                norm = normalize_port(p)
+                if norm:
+                    ports.append(norm)
                 else:
                     invalid.append(p)
 
@@ -66,24 +65,20 @@ def parse_rule(args):
                 ports.append(norm)
             else:
                 invalid.append(token)
-
         i += 1
 
     if invalid:
         for p in invalid[:]:
             if p.isdigit():
                 print(f"⚠ You forgot to specify the protocol for port {p}.")
-                choice = input("Specify the protocol now: 1 = TCP, 2 = UDP, 3 = Both: ").strip()
+                choice = input("Specify protocol: 1=TCP, 2=UDP, 3=Both: ").strip()
                 proto_map = {"1": "tcp", "2": "udp", "3": "both"}
-                if choice not in proto_map:
-                    raise ValueError(f"Invalid protocol choice: {choice}")
-                ports.append(f"{proto_map[choice]}/{p}")
-                invalid.remove(p)
+                if choice in proto_map:
+                    ports.append(f"{proto_map[choice]}/{p}")
+                    invalid.remove(p)
+        
         if invalid:
             raise ValueError(f"Invalid port/protocol: {', '.join(invalid)}")
-
-    if ports:
-        ports.sort()
 
     return {
         "action": action,
@@ -106,50 +101,56 @@ def add_rule(args):
         args[0] = "block"
 
     try:
-        rule = parse_rule(args)
+        parsed_data = parse_rule(args)
     except ValueError as e:
         print(f"❌ {e}")
         return
 
-    if rule["ports"] is None and rule["source"] is None:
+    if parsed_data["ports"] is None and parsed_data["source"] is None:
         if action == "allow":
-            ans = input(
-                "⚠️ This action will allow ALL incoming packets and will disable filtering completely. Are you sure you want to continue? [y/N]: "
-            ).strip().lower()
+            ans = input("⚠️ Allow ALL incoming packets? [y/N]: ").strip().lower()
             if ans not in ("y", "yes"):
-                print("❌ Aborted by user.")
+                print("❌ Aborted.")
                 return
         elif action == "block":
-            print("⚠️ Doing this might cause unexpected behavior. Thus, this action was blocked. You probably don't want to execute this.")
+            print("⚠️ Global block prevented for safety.")
             return
 
     with lock():
         cfg = load_config()
         rules = cfg.get("rules", [])
 
-        def is_duplicate(new_rule, existing_rules):
-            for r in existing_rules:
-                if (
-                    r["action"] == new_rule["action"] and
-                    r.get("source") == new_rule.get("source") and
-                    r.get("ports") == new_rule.get("ports")
-                ):
-                    return True
-            return False
+        new_rules_to_process = []
+        if parsed_data["ports"]:
+            for p in parsed_data["ports"]:
+                new_rules_to_process.append({
+                    "action": action,
+                    "source": parsed_data["source"],
+                    "ports": [p]
+                })
+        else:
+            new_rules_to_process.append(parsed_data)
 
-        if is_duplicate(rule, rules):
-            print("⚠ Duplicate rule detected. No changes made.")
-            return
+        added_count = 0
+        for new_rule in new_rules_to_process:
+            if any(r["action"] == new_rule["action"] and 
+                r.get("source") == new_rule.get("source") and 
+                r.get("ports") == new_rule.get("ports") for r in rules):
+                    print(f"⚠ Duplicate rule for {new_rule.get('ports') or 'all ports'} skipped.")
+                    continue
 
-        next_id = max([r["id"] for r in rules], default=0) + 1
-        rule["id"] = next_id
-        rules.append(rule)
+            next_id = max([r["id"] for r in rules], default=0) + 1
+            new_rule["id"] = next_id
+            rules.append(new_rule)
+            added_count += 1
 
-        cfg["rules"] = rules
-        save_config(cfg)
-        apply_nft_config(cfg)
-
-    print(f"✅ Rule {next_id} added.")
+        if added_count > 0:
+            cfg["rules"] = rules
+            save_config(cfg)
+            apply_nft_config(cfg)
+            print(f"✅ Added {added_count} rule(s).")
+        else:
+            print("ℹ️ No new rules were added.")
 
 def remove_rules(targets):
     with lock():
