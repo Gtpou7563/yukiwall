@@ -108,12 +108,12 @@ def add_rule(args):
 
     if parsed_data["ports"] is None and parsed_data["source"] is None:
         if action == "allow":
-            ans = input("⚠️ Allow ALL incoming packets? [y/N]: ").strip().lower()
+            ans = input("⚠️ This action will allow ALL incoming packets and will disable filtering completely. Are you sure you want to continue? [y/N]: ").strip().lower()
             if ans not in ("y", "yes"):
                 print("❌ Aborted.")
                 return
         elif action == "block":
-            print("⚠️ Global block prevented for safety.")
+            print("⚠️ Doing this might cause unexpected behavior. Thus, this action was blocked. You probably don't want to execute this.")
             return
 
     with lock():
