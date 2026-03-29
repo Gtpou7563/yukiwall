@@ -49,22 +49,25 @@ def parse_rule(args):
 
         elif token == "to":
             i += 1
-            if i >= len(args):
-                raise ValueError("Missing ports after 'to'")
-            raw_ports = args[i].replace(",", " ").split()
-            for p in raw_ports:
-                norm = normalize_port(p)
+            while i < len(args) and args[i] not in ["from", "to"]:
+                raw_ports = args[i].replace(",", " ").split()
+                for p in raw_ports:
+                    norm = normalize_port(p)
+                    if norm:
+                        ports.append(norm)
+                    else:
+                        invalid.append(p)
+                i += 1
+            continue
+
+        else:
+            split_tokens = token.replace(",", " ").split()
+            for t in split_tokens:
+                norm = normalize_port(t)
                 if norm:
                     ports.append(norm)
                 else:
-                    invalid.append(p)
-
-        else:
-            norm = normalize_port(token)
-            if norm:
-                ports.append(norm)
-            else:
-                invalid.append(token)
+                    invalid.append(t)
         i += 1
 
     if invalid:
