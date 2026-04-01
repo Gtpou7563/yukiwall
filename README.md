@@ -165,5 +165,3 @@ sudo yukiwall status
 
 * New project; some issues may exist.
 * Report issues and contribute on GitHub for improvements.
-
----
